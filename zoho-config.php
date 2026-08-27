@@ -9,7 +9,7 @@ return [
     'client_secret' => '7d0cc19132ac3dacfe378b0dda0045b350f86e40d2',
     'refresh_token' => '1000.3b93ae33d7366618f769d67b170d9a9a.854ecb3a7368f788c6c1230d9a25f6b8',
     'module' => 'Leads',
-    'lead_source' => 'ASD Market Week Landing Page',
+    'lead_source' => 'WorldofHawas-Shopify-Website',
     'duplicate_check_fields' => ['User_ID'],
     'user_id_source' => 'email',
     'field_map' => [
