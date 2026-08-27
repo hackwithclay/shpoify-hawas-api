@@ -95,18 +95,17 @@ function json_response(int $status, array $body): void
 
 function cors(): void
 {
-    $allowedOrigin = env_value('ALLOWED_ORIGIN');
-    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+    $origin = $_SERVER['HTTP_ORIGIN'] ?? '*';
 
-    if ($allowedOrigin !== '' && ($origin === $allowedOrigin || $allowedOrigin === '*')) {
-        header('Access-Control-Allow-Origin: ' . $allowedOrigin);
-        header('Vary: Origin');
-        header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
-    }
+    header("Access-Control-Allow-Origin: " . ($origin !== '' ? $origin : '*'));
+    header("Access-Control-Allow-Credentials: true");
+    header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Origin, Accept");
+    header("Access-Control-Max-Age: 86400");
+    header("Vary: Origin");
 
     if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-        http_response_code(204);
+        http_response_code(200);
         exit;
     }
 }
@@ -114,17 +113,20 @@ function cors(): void
 function is_valid_lead(array $data): bool
 {
     $name = trim((string) ($data['name'] ?? ''));
-    $phone = trim((string) ($data['phone'] ?? $data['phoneNumber'] ?? ''));
+    $rawPhone = trim((string) ($data['phone'] ?? $data['phoneNumber'] ?? ''));
+    $phoneDigits = preg_replace('/\D+/', '', $rawPhone);
     $email = trim((string) ($data['email'] ?? ''));
     $message = trim((string) ($data['message'] ?? ''));
     $quantity = trim((string) ($data['quantity'] ?? ''));
     $validQuantity = $quantity === '' || preg_match('/^\d+$/', $quantity);
 
+    // If email is provided, validate format; if empty, allow it
+    $validEmail = ($email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) !== false);
+
     return strlen($name) >= 3
-        && preg_match('/^[A-Za-z ]+$/', $name)
-        && preg_match('/^\d{7,15}$/', $phone)
-        && filter_var($email, FILTER_VALIDATE_EMAIL)
-        && strlen($message) <= 500
+        && strlen($phoneDigits) >= 7 && strlen($phoneDigits) <= 15
+        && $validEmail
+        && strlen($message) <= 2000
         && $validQuantity;
 }
 
@@ -192,7 +194,7 @@ function send_to_zoho(array $lead): void
     [$firstName, $lastName] = split_name($lead['name']);
 
     $userId = strtolower($lead['email']);
-    if (config_value('ZOHO_USER_ID_SOURCE', 'user_id_source', 'email') === 'phone') {
+    if (empty($userId) || config_value('ZOHO_USER_ID_SOURCE', 'user_id_source', 'email') === 'phone') {
         $userId = preg_replace('/\D+/', '', $lead['country_code'] . $lead['phone']);
     }
 
@@ -253,6 +255,7 @@ function send_to_zoho(array $lead): void
     }
 }
 
+// 1. Run CORS headers immediately
 cors();
 
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -269,7 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_response(405, ['ok' => false, 'message' => 'Method not allowed.']);
 }
 
-$data = json_decode(file_get_contents('php://input'), true);
+$data = json_decode((string) file_get_contents('php://input'), true);
 
 if (!is_array($data) || !is_valid_lead($data)) {
     json_response(422, [
@@ -287,7 +290,7 @@ $lead = [
     'quantity' => trim((string) ($data['quantity'] ?? '')),
     'country_code' => trim((string) ($data['countryCode'] ?? '')),
     'phone' => trim((string) ($data['phone'] ?? $data['phoneNumber'] ?? '')),
-    'email' => strtolower(trim((string) $data['email'])),
+    'email' => strtolower(trim((string) ($data['email'] ?? ''))),
     'service' => trim((string) ($data['service'] ?? $data['typeOfService'] ?? '')),
     'message' => trim((string) ($data['message'] ?? '')),
     'ip' => $_SERVER['REMOTE_ADDR'] ?? '',
