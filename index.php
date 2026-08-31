@@ -161,7 +161,6 @@ function get_zoho_token(): string
 
     $response = curl_exec($ch);
     $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
 
     $body = json_decode((string) $response, true);
 
@@ -247,7 +246,6 @@ function send_to_zoho(array $lead): void
 
     $response = curl_exec($ch);
     $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
 
     if ($status < 200 || $status >= 300) {
         error_log('Zoho lead failed. Status: ' . $status . ' Response: ' . (string) $response);
