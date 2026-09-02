@@ -18,6 +18,7 @@ function zoho_config(): array
     $config = [];
     $paths = array_filter([
         env_value('ZOHO_CONFIG_PATH'),
+        __DIR__ . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'zoho.php',
         __DIR__ . DIRECTORY_SEPARATOR . 'zoho-config.php',
         'C:\\Users\\Nikhil\\OneDrive\\Documents\\zoho-config.php',
     ]);

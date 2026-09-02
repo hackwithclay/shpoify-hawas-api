@@ -6,6 +6,6 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [L]
 
-<FilesMatch "^shopify-preorder\.config\.php$">
+<FilesMatch "^(shopify-preorder\.config\.php|zoho\.php)$">
     Require all denied
 </FilesMatch>

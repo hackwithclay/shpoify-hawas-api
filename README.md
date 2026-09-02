@@ -1,7 +1,9 @@
 # Upload to zoho.worldofhawas.com
 
-Everything in this folder goes to the **web root of `zoho.worldofhawas.com`** —
-the same directory that already serves `preorderendpoint.php`.
+The endpoint files go to the **web root of `zoho.worldofhawas.com`** — the same
+directory that already serves `preorderendpoint.php`. The two real credential
+files go in their named locations below; do not upload the example files under
+their `.example.php` names.
 
 The storefront is NOT yet pointed at this host — see step 1. What is left
 is putting these files in place and then switching it over.
@@ -28,11 +30,11 @@ owned that number and showing *their* name instead of the one on the form.
 500 {"ok":false,"error":"Pre-orders are not configured."}
 ```
 
-The real file is deliberately not in this folder and not in git, so it has to be
-copied across by hand from the old host, `zoho.websitedesignersdubai.ae`, where
-it sits beside `preorderendpoint.php`. `shopify-preorder.config.example.php` is
-included here as the template if you would rather issue a fresh token — save it
-as `shopify-preorder.config.php` (drop the `.example`).
+The real file is deliberately not committed to git, so it has to be copied
+across by hand from the old host, `zoho.websitedesignersdubai.ae`, where it sits
+beside `preorderendpoint.php`. `shopify-preorder.config.example.php` is the
+safe template if you would rather issue a fresh token — save it as
+`shopify-preorder.config.php` (drop the `.example`).
 
 The storefront is still pointed at the **old** host until that file is in place.
 Repointing it first is what takes pre-orders down — an empty payload returns
@@ -71,12 +73,14 @@ name in place — the endpoint looks for `config/zoho.php`.
 
 The Zoho credentials already exist on the server, inside whatever
 `submit-lead.php` reads. Lift them from there rather than issuing new ones.
+The resulting `config/zoho.php` is ignored by git and direct access to
+`zoho.php` is denied by `.htaccess`.
 
 **Two traps in that config:**
 
 - `accounts_domain` and `api_domain` must both point at the data centre the CRM
-  actually lives in — `.in` for a UAE/India account. Point them at the wrong one
-  and Zoho returns `invalid_client`.
+  actually lives in. Copy the exact pair from the working Zoho integration;
+  choosing a domain from the business location alone can return `invalid_client`.
 - `Type_of_Service` is a picklist. The seven options on the contact page must
   match it character for character. They currently do — don't reword either side
   without changing the other.
