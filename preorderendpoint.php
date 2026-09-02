@@ -12,7 +12,7 @@
  *
  * DEPLOY
  *   1. Put this file somewhere it can be reached over HTTPS.
- *   2. Create shopify-preorder.config.php beside it (see CONFIG_FILE below).
+ *   2. Create shopify-preorder.config.php beside it (see $CONFIG_FILE below).
  *   3. Paste this file's URL into
  *      Theme settings > Pre-orders > Pre-order endpoint URL,
  *      and switch on "Show the pre-order button on product pages".
@@ -148,8 +148,17 @@ if ($country !== '') {
     $shipping['country'] = $country;
 }
 
+/*
+ * The name goes in the note as well as on the address. Shopify shows the
+ * linked customer's name on a draft order rather than the address name, so
+ * if an order ever attaches to an existing customer the note is what still
+ * records who actually filled the form in.
+ */
+$fullName = trim($firstName . ' ' . $lastName);
+
 $note = "Pre-order placed from the product page.\n"
       . 'Product: ' . ($product !== '' ? $product : 'variant ' . $variantId) . "\n"
+      . 'Name: ' . ($fullName !== '' ? $fullName : 'not given') . "\n"
       . 'Phone: ' . $phone;
 
 $mutation = <<<'GRAPHQL'
@@ -164,7 +173,14 @@ GRAPHQL;
 $variables = [
     'input' => [
         'email'           => $email,
-        'phone'           => $phone,
+        /*
+         * No 'phone' here on purpose. A phone number is unique across a
+         * shop, so passing one at this level makes Shopify attach the draft
+         * order to whichever customer already owns that number and show
+         * that customer's name instead of the one typed on the form. That
+         * is how a pre-order arrived under a stranger's name. The number is
+         * still on the shipping address and in the note.
+         */
         'note'            => $note,
         'tags'            => [DRAFT_TAG],
         'shippingAddress' => $shipping,
@@ -190,6 +206,7 @@ curl_setopt_array($ch, [
 $response = curl_exec($ch);
 $status   = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $curlErr  = curl_error($ch);
+curl_close($ch);
 
 if ($response === false || $status < 200 || $status >= 300) {
     error_log('preorder: Shopify HTTP ' . $status . ' ' . $curlErr . ' ' . (string) $response);
