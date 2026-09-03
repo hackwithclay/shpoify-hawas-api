@@ -172,11 +172,28 @@ function accessToken(array $config): string
     ]);
     $body = curl_exec($ch);
     $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
     curl_close($ch);
 
     $data = json_decode((string) $body, true);
     if ($status !== 200 || empty($data['access_token'])) {
-        throw new RuntimeException('Could not obtain a Zoho access token');
+        /*
+         * Zoho's own reason goes to the error log and never to the response:
+         * the caller is a public page. Without it there was nothing anywhere
+         * to diagnose from -- the endpoint said only "Upstream authentication
+         * failed", and so did the log.
+         *
+         * "invalid_client" here is almost always accounts_domain pointing at
+         * the wrong data centre; it must match the one the CRM actually lives
+         * in, and api_domain has to agree with it.
+         */
+        throw new RuntimeException(sprintf(
+            'Zoho token request failed: HTTP %d, error "%s", accounts_domain %s%s',
+            $status,
+            is_array($data) ? (string) ($data['error'] ?? 'none reported') : 'unparseable response',
+            $config['accounts_domain'],
+            $curlError !== '' ? ', curl: ' . $curlError : ''
+        ));
     }
 
     @file_put_contents($cacheFile, json_encode([
